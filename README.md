@@ -6,6 +6,7 @@ The implementation is written in C++23, uses OpenMP for parallelisation and Boos
 
 ## Features
 * Enumerate all binary convexities on a set of size dim ($0\dots6$, but 6 is extremely slow).
+* Support for grounded convexities ($\varnothing$ forced to be convex).
 * Resumable computation - save progress and continue later.
 * Various output modes (index, set, table, comma‑separated).
 * Configurable timer unit (seconds, milliseconds, etc.).
@@ -24,6 +25,7 @@ The implementation is written in C++23, uses OpenMP for parallelisation and Boos
 | `--dim`       | uint64_t | required  | dimension of the space                                                         |
 | `--start`     | uint64_t | 0         | starting index for convex sets                                                 |
 | `--success`   | uint64_t | 0         | initial count of successful convex sets                                        |
+| `--grounded`  | flag     | false     | count grounded convexities ($\varnothing\in G$)                                |
 | `--output`    | string   | "none"    | output mode (see below)                                                        |
 | `--block`     | uint64_t | 100000000 | block size for checkpointing                                                   | 
 | `--timermode` | string   | "seconds" | Unit for time output: "seconds", "milliseconds", "microseconds", "nanoseconds" |
@@ -52,7 +54,7 @@ To resume an interrupted run, use the last values as `--start` and `--success`.
 
 ## Performance notes
 * For $|X|\leq4$ the enumeration finishes almost instantly (well under 1 second).
-* For $|X|=5$ the total number of families is $2^{31}$. Running is about ~1.5 minutes on a modern multi‑core CPU.
+* For $|X|=5$ the total number of families is $2^{31}$. Running is about ~1.5 minutes (~53 seconds for grounded) on a modern multi‑core CPU.
 * For $|X|=6$ a full enumeration would take many years with the current brute‑force approach.
 
 ## Known issues/limitations

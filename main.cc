@@ -61,6 +61,7 @@ struct Config {
   uint64_t dim = 0;
   uint64_t start_idx = 0;
   uint64_t success_count = 0;
+  bool grounded = false;
   std::string convex_output_mode = "none";
   uint64_t block_size = 100'000'000;
   std::string timermode = "seconds";
@@ -78,6 +79,8 @@ Config parse_args(int argc, char *argv[]) {
       "starting index for convex sets")(
       "success", po::value<uint64_t>(&cfg.success_count)->default_value(0),
       "initial count of successful convex sets")(
+      "grounded", po::bool_switch(&cfg.grounded)->default_value(false),
+      "count grounded convexities (empty set in convex)")(
       "output",
       po::value<std::string>(&cfg.convex_output_mode)->default_value("none"),
       "output mode for convex sets (none, index, set, table, delim)")(
@@ -170,6 +173,8 @@ int main(int argc, char *argv[]) {
   std::cout << "Max number of threads: " << omp_get_max_threads() << "\n";
   auto &&cfg = parse_args(argc, argv);
   uint64_t dim = cfg.dim;
+  std::cout << "Grounded convexities: " << (cfg.grounded ? "Yes" : "No")
+            << "\n";
   std::cout << "dim: " << dim << "\n";
   std::cout << "start_idx: " << cfg.start_idx
             << ", initial success_count: " << cfg.success_count << "\n";
@@ -228,6 +233,7 @@ int main(int argc, char *argv[]) {
   }
 
   auto &&begin = std::chrono::steady_clock::now();
+  auto &&step = cfg.grounded ? 2 : 1;
   auto success_count = cfg.success_count;
   using timer_method_t = std::function<std::chrono::duration<long double>(
       std::chrono::steady_clock::time_point)>;
@@ -256,12 +262,12 @@ int main(int argc, char *argv[]) {
 
   for (uint64_t progress = cfg.start_idx; progress < total_convex;
        progress += cfg.block_size) {
-    auto block_start_idx = progress;
+    auto block_start_idx = cfg.grounded ? (progress | 1) : progress;
     auto block_end_idx = std::min(progress + cfg.block_size, total_convex);
 #pragma omp parallel
     {
 #pragma omp for reduction(+ : success_count)
-      for (uint64_t idx = block_start_idx; idx < block_end_idx; ++idx) {
+      for (uint64_t idx = block_start_idx; idx < block_end_idx; idx += step) {
         std::vector<mask_t> convex;
         convex.reserve(std::popcount(idx) + 1);
         convex.push_back(max_mask);
